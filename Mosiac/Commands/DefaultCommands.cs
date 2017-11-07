@@ -336,6 +336,81 @@ namespace Mosiac.Commands
 
             return sb.ToString();
         }
+
+        public static string Filler(int charactercount) {
+
+            StringBuilder sb = new StringBuilder();
+            sb.Append("|");
+            for (int i = 0; i < charactercount; i++)
+            {
+                sb.Append("-");
+            }
+            sb.Append("|");
+            return sb.ToString();
+        }
+
+        public static string pullstocktag(int id)
+        {
+
+            StringBuilder sb = new StringBuilder();
+            using (var ctx = new MyContext())
+            {
+                try
+                {
+                    Inventory inv = ctx.Inventory.Where(c => c.LineID == id).FirstOrDefault();
+
+                    Inventory newInventory = new Inventory();
+
+                    //sb.AppendLine(" ");
+                    //sb.AppendLine(String.Format("|{0,-10}|{1,-10}|{2,-9}|{3,-80}|{4,-11}|", "StockTag", "PartID", "Qnty", "Description", "Recvd Date"));
+                    //sb.AppendLine(Filler(125));
+                    //foreach (Inventory i in inventory)
+                    //{
+                    //    sb.AppendLine(String.Format("|{0,-10}|{1,-10}|{2,-9}|{3,-80}|{4,-11:d}|", i.LineID, i.PartID.ToString() ?? "-", i.Qnty, StringTool.Truncate(i.Description.ToString().TrimEnd(), 80), i.DateStamp));
+                    //}
+
+                }
+                catch { sb.AppendLine("No Valid Part Found"); }
+
+            }
+
+            return sb.ToString();
+        }
+
+        public static string findstocktag(int id)
+        {
+
+            StringBuilder sb = new StringBuilder();
+            using (var ctx = new MyContext())
+            {
+                try
+                {
+                    var inventory = ctx.Inventory.Where(c => c.LineID == id).ToList();
+                  
+                    //if (p.UnitOfMeasure.HasValue)
+                    //{
+                    //    UnitOfMeasure uom = ctx.UnitOfMeasure.Where(u => u.UID == p.UnitOfMeasure.Value).Single();
+                    //}
+
+
+                    sb.AppendLine("||");
+                    sb.AppendLine(" ");
+                    sb.AppendLine(String.Format("|{0,-10}|{1,-10}|{2,-9}|{3,-80}|{4,-11}|","StockTag","PartID","Qnty", "Description", "Recvd Date"));
+                    sb.AppendLine("|----------------------------------------------------------------------------------------------------------------------------|");
+                    foreach (Inventory i in inventory)
+                    {
+                        sb.AppendLine(String.Format("|{0,-10}|{1,-10}|{2,-9}|{3,-80}|{4,-11:d}|", i.LineID, i.PartID.ToString() ?? "-",i.Qnty,StringTool.Truncate( i.Description.ToString().TrimEnd(),80), i.DateStamp));
+                    }
+
+                }
+                catch { sb.AppendLine("No Valid Part Found"); }
+
+            }
+
+            return sb.ToString();
+        }
+
+
         public static string stocklevel(int id)
         {
 
