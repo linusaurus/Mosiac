@@ -40,7 +40,7 @@ namespace Mosiac.Commands
                     sb.AppendLine(p.ManuID.ToString());
 
                     sb.Append("Cost".PadRight(rightspace));
-                    sb.AppendLine(p.Cost.ToString());
+                    sb.AppendLine(p.Cost.Value.ToString("C2"));
 
                     sb.Append("Supplier".PadRight(rightspace));
                     if (p.SupplierID.HasValue)
@@ -66,6 +66,10 @@ namespace Mosiac.Commands
 
                     sb.Append("SKU".PadRight(rightspace));
                     sb.AppendLine(p.SKU);
+
+                    sb.Append("Added By".PadRight(rightspace));
+                    sb.AppendLine(p.AddedBy.ToString().TrimEnd());
+
 
                     sb.Append("Unit OF Measure".PadRight(rightspace));
                     if (p.UID.HasValue)
@@ -100,23 +104,21 @@ namespace Mosiac.Commands
                     var partTransactions = ctx.Inventory.Where(l => l.PartID == partID).ToList();
                     if (partTransactions.Count > 0)
                     {
-                        sb.AppendLine("+ --------------------------------------------------------------------- +");
+                        sb.AppendLine(Filler(138));// --
+                        sb.AppendLine(String.Format("|{0,-10}|{1,-8}|{2,-16}|{3,-82}|{4,-9}|{5,8}|", "Stock_ID", "Part_ID", "Date","Description","TransType","Qnty")); //header--
+                        sb.AppendLine(Filler(138));
                         foreach (Inventory i in partTransactions)
                         {
-                            sb.Append(i.StockTransactionID.ToString().PadRight(8));
-                            sb.Append(i.PartID.ToString().PadRight(8));
-                            sb.Append(i.DateStamp.Value.ToShortDateString().PadRight(16));
-                            sb.Append(i.Description.Trim());
-                            sb.Append(i.TransActionType.ToString());
-                            sb.AppendLine(i.Qnty.ToString());
-
+                            sb.AppendLine(String.Format("|{0,-10}|{1,-8}|{2,-16}|{3,-82}|{4,-9}|{5,8}|", 
+                                i.StockTransactionID, i.PartID,i.DateStamp.Value.ToShortDateString(),StringTool.Truncate( i.Description,82), i.TransActionType, i.Qnty));
                         }
                         decimal inventoryCount = ctx.Inventory.Where(l => l.PartID == partID).Sum(c => c.Qnty);
+                        sb.AppendLine(Filler(138)); //--
                         sb.AppendLine(" ");
                         sb.Append("Current Stock".PadRight(28));
                         sb.AppendLine(inventoryCount.ToString());
 
-                        sb.AppendLine("+ --------------------------------------------------------------------- +");
+                        
 
                     }
                     else  //THERE IS NO TRANSACTIONS SO MAKE A FIRST ONE
@@ -538,12 +540,12 @@ namespace Mosiac.Commands
                 if(filter != "0")
                 {
                     sb.AppendLine(" ");
-                    sb.AppendLine(String.Format("|{0,-12}|{1,-90}|{2,-16}|", "Part_ID", "Description", "Stock Available"));
+                    sb.AppendLine(String.Format("|{0,-12}|{1,-90}|{2,16}|", "Part_ID", "Description", "Stock Available"));
                     sb.AppendLine("|------------------------------------------------------------------------------------------------------------------------|");
                     var inventory = ctx.Inventory.Where(c => c.Description.Contains(filter)).ToList();
                     foreach (Inventory i in inventory)
                     {
-                        sb.AppendLine(String.Format("|{0,-12}|{1,-90}|{2,-16}|",i.PartID, StringTool.Truncate(i.Description.TrimEnd(),90), i.Qnty));
+                        sb.AppendLine(String.Format("|{0,-12}|{1,-90}|{2,16}|",i.PartID, StringTool.Truncate(i.Description.TrimEnd(),90), i.Qnty));
 
                     }
                 }
