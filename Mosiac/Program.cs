@@ -33,17 +33,15 @@ namespace Mosiac
     {
         const string _commandNamespace = "Mosiac.Commands";
         static Dictionary<string, Dictionary<string, IEnumerable<System.Reflection.ParameterInfo>>> _commandLibraries;
-
+        static string vers = Assembly.GetExecutingAssembly().GetName().Version.ToString();
         static void DisplayAppInformation()
         {
-            Console.WriteLine("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
-            Console.WriteLine("+                                                                                   +");
-            Console.WriteLine("+                              Mosiac-Inventory                                     +");
-            Console.WriteLine("+                          Version 1.0.a   Oct,31,2017                              +");
-            Console.WriteLine("+                                                                                   +");
-            Console.WriteLine("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-+");
-
-            Console.WriteLine("                                    -||-                                             ");
+            Console.WriteLine(Mosiac.Commands.DefaultCommands.Filler(120));                                                                          
+            Console.WriteLine("Mosiac-Inventory".PadLeft(60));
+            Console.WriteLine(String.Format("version {0,-24}".PadLeft(58),vers));
+            Console.WriteLine(String.Format("Date    {0,-24}".PadLeft(58), DateTime.Today.ToShortDateString()));
+            Console.WriteLine(Mosiac.Commands.DefaultCommands.Filler(120));
+            Console.WriteLine(" ");
             Console.WriteLine(" ");
 
         }

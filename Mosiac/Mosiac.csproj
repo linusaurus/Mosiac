@@ -5,6 +5,8 @@
     <TargetFramework>netcoreapp2.0</TargetFramework>
 	<RuntimeIdentifiers>win10-x64;osx.10.12-x64;debian.8-x64</RuntimeIdentifiers>
     <StartupObject>Mosiac.Program</StartupObject>
+    <AssemblyVersion>1.0.0.3</AssemblyVersion>
+    <FileVersion>1.0.0.3</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
