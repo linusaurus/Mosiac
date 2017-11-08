@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using PurchaseModel;
 
 
@@ -89,6 +90,61 @@ namespace Mosiac.Commands
             }
 
             return sb.ToString();
+        }
+
+        public static string findorder(int orderNum)
+        {
+            StringBuilder sb = new StringBuilder();
+            using (var ctx = new MyContext())
+            {
+                sb.AppendLine(Filler(120));
+                sb.AppendLine(String.Format("|{0,-8}|{1,-10}|{2,-12}|{3,-30}|{4,-18}|{5,-37}|",
+                       "OrderID", "Date","Total","Supplier", "Employee", "Job"));
+                sb.AppendLine(Filler(120));
+                try
+                {
+
+                    var po = ctx.PurchaseOrder.Include(s => s.Supplier).Include(l => l.PurchaseLineItems)
+                        .Include(e=> e.Employee).Include(j=> j.Job)
+                                                .Where(j => j.OrderNum == orderNum).First();
+
+                   sb.AppendLine(String.Format("|{0,-8}|{1,-10}|{2,-12}|{3,-30}|{4,-18}|{5,-37}|",
+                        po.OrderNum,po.OrderDate.Value.ToShortDateString(),po.OrderTotal.Value.ToString("C2"),po.Supplier.SupplierName,po.Employee.firstname +" " + po.Employee.lastname,StringTool.Truncate(po.Job.jobName.ToString().TrimEnd(),37)));
+
+                    sb.AppendLine(FillDown(3));
+                    sb.AppendLine(String.Format("|{0,-8}|{1,-6}|{2,-8}|{3,-75}|{4,8}|{5,8}", "LineID", "PartID","Qnty", "Description", "Cost","Extend"));
+                    string desc;
+                    foreach (var pline in po.PurchaseLineItems)
+                    {
+                        if(pline.Description.TrimEnd().Length > 73)
+                        {desc = StringTool.Truncate(pline.Description.ToString().TrimEnd(), 70) + "...";}
+                        else
+                        {desc = pline.Description.ToString().TrimEnd(); }
+                                
+                        string cost=  pline.UnitCost.Value.ToString();
+                        sb.AppendLine(String.Format("|{0,-8}|{1,-6}|{2,-8}|{3,-75}|{4,8}|{5,8}|",
+                            pline.LineID,pline.PartID,String.Format("{0:0.00}",pline.Qnty),desc,pline.UoPPrice.Value.ToString("C2"),pline.Extended.Value.ToString("C2")));
+                    }
+
+                    sb.AppendLine(FillDown(2));
+                    sb.AppendLine(String.Format("Order Total = {0,8}",po.OrderTotal.Value.ToString("C2")));
+                    string revd = string.Empty;
+                    if (po.Recieved.Value)
+                    { revd = "YES"; }
+                    else{ revd = "NO"; }
+
+                    sb.AppendLine(String.Format("Received-{0}",revd));
+
+                }
+                catch (Exception ex)
+                {
+                    sb.AppendLine(ex.InnerException.ToString());
+
+                }
+
+
+            }
+            return sb.ToString() ;
         }
 
 
@@ -348,6 +404,19 @@ namespace Mosiac.Commands
                 sb.Append("-");
             }
             sb.Append("|");
+            return sb.ToString();
+        }
+
+        public static string FillDown(int charactercount)
+        {
+
+            StringBuilder sb = new StringBuilder();
+            
+            for (int i = 0; i < charactercount; i++)
+            {
+                sb.AppendLine("|");
+            }
+           
             return sb.ToString();
         }
 

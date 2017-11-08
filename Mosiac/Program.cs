@@ -24,10 +24,13 @@ namespace Mosiac
         public DbSet<UnitOfMeasure> UnitOfMeasure { get; set; }
         public DbSet<TransActionType> TransActionType { get; set; }
         public DbSet<Job> Job { get; set; }
+        public DbSet<PurchaseOrder> PurchaseOrder { get; set; }
+        public DbSet<PurchaseLineItem> PurchaseLineItem { get; set; }
+        public DbSet<Employee> Employee { get; set; }
 
+        
     }
 
-  
 
     class Program
     {
