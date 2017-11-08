@@ -147,6 +147,42 @@ namespace Mosiac.Commands
             return sb.ToString() ;
         }
 
+        public static string findline(string search)
+        {
+            StringBuilder sb = new StringBuilder();
+            using (var ctx = new MyContext())
+            {
+                sb.AppendLine(Filler(120));
+                sb.AppendLine(String.Format("|{0,-10}|{1,-10}|{2,-12}|{3,-10}|{4,-74}|","LineID", "Order#", "Date","Qnty", "Discription"));
+                sb.AppendLine(Filler(120));
+                try
+                {
+                    var lines = ctx.PurchaseLineItem.Include(v=> v.PurchaseOrder).Where(c => c.Description.Contains(search));
+                    foreach (PurchaseLineItem l in lines)
+                    {
+                        string desc;
+                        if (l.Description.ToString().TrimEnd().Length > 70)
+                        { desc = StringTool.Truncate(l.Description.ToString().TrimEnd(), 70) + "..."; }
+                        else
+                        { desc = l.Description.ToString().TrimEnd(); }
+
+                        string qnty = String.Format("{0:0.00}", l.Qnty);
+                        string date = l.PurchaseOrder.OrderDate.Value.ToShortDateString();
+                        sb.AppendLine(String.Format("|{0,-10}|{1,-10}|{2,-12}|{3,-10}|{4,-74}|",l.LineID,l.PurchaseOrderID,date,qnty,desc));
+                    }
+             
+
+                }
+                catch //(Exception ex)
+                {
+                    //sb.AppendLine(ex.InnerException.ToString());
+
+                }
+
+
+            }
+            return sb.ToString();
+        }
 
         public static string showtrans(int partID)
         {
@@ -649,6 +685,9 @@ namespace Mosiac.Commands
             sb.AppendLine("pullpart   <part number, qnty>, [optional-jobid]");
             sb.AppendLine("setlevel   <part number, qnty>");
             sb.AppendLine("showtrans  <part number>");
+            sb.AppendLine("findorder  <order number>");
+            sb.AppendLine("findline   <search String>");
+            sb.AppendLine("findstocktag < tag number>");
             sb.AppendLine("showinventory [optional-search string]");
             sb.AppendLine("findjob       [optional-search string]");
             sb.AppendLine("quit");
