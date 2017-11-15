@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Text;
 using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using PurchaseModel;
-
+using System.Reflection;
 
 namespace Mosiac.Commands
 {
@@ -14,85 +12,90 @@ namespace Mosiac.Commands
     {
         // Methods used as console commands must be public and must return a string
 
-        public static string showpart(int id)
+        public static string showpart(int id,string flag = "-")
         {
             int rightspace = 25;
             StringBuilder sb = new StringBuilder();
-            using (var ctx = new MyContext())
+           if (flag == "-")
             {
-                try
+
+                using (var ctx = new MyContext())
                 {
-                    Part p = ctx.Part.Where(c => c.PartID == id).Single();
-                    sb.AppendLine("--->"); //Spacer-Header
-                    sb.AppendLine("");
-                    sb.Append("PartID".PadRight(rightspace));
-                    sb.AppendLine(p.PartID.ToString());
-                    //--
-                    sb.Append("ItemName".PadRight(rightspace));
-                    if (p.ItemName != null) sb.AppendLine(p.ItemName); else { sb.AppendLine(""); }
-                    //--
-                    sb.Append("PartNum".PadRight(rightspace));
-                    if (p.PartNum != null) sb.AppendLine(p.PartNum); else { sb.Append(""); }
-                    //--
-                    sb.Append("Item Description".PadRight(rightspace));
-                    sb.AppendLine(p.ItemDescription);
-
-                    sb.Append("ManuID".PadRight(rightspace));
-                    sb.AppendLine(p.ManuID.ToString());
-
-                    sb.Append("Cost".PadRight(rightspace));
-                    sb.AppendLine(p.Cost.Value.ToString("C2"));
-
-                    sb.Append("Supplier".PadRight(rightspace));
-                    if (p.SupplierID.HasValue)
+                    try
                     {
-                        try
-                        {
-                            var supplier = ctx.Supplier.Where(s => s.SupplierID == p.SupplierID.Value).Single();
-                            sb.AppendLine(supplier.SupplierName);
-                        }
-                        catch
-                        {
+                        Part p = ctx.Part.Where(c => c.PartID == id).Single();
+                        sb.AppendLine("--->"); //Spacer-Header
+                        sb.AppendLine("");
+                        sb.Append("PartID".PadRight(rightspace));
+                        sb.AppendLine(p.PartID.ToString());
+                        //--
+                        sb.Append("ItemName".PadRight(rightspace));
+                        if (p.ItemName != null) sb.AppendLine(p.ItemName); else { sb.AppendLine(""); }
+                        //--
+                        sb.Append("PartNum".PadRight(rightspace));
+                        if (p.PartNum != null) sb.AppendLine(p.PartNum); else { sb.Append(""); }
+                        //--
+                        sb.Append("Item Description".PadRight(rightspace));
+                        sb.AppendLine(p.ItemDescription);
 
-                            sb.AppendLine("");
+                        sb.Append("ManuID".PadRight(rightspace));
+                        sb.AppendLine(p.ManuID.ToString());
+
+                        sb.Append("Cost".PadRight(rightspace));
+                        sb.AppendLine(p.Cost.Value.ToString("C2"));
+
+                        sb.Append("Supplier".PadRight(rightspace));
+                        if (p.SupplierID.HasValue)
+                        {
+                            try
+                            {
+                                var supplier = ctx.Supplier.Where(s => s.SupplierID == p.SupplierID.Value).Single();
+                                sb.AppendLine(supplier.SupplierName);
+                            }
+                            catch
+                            {
+
+                                sb.AppendLine("");
+                            }
+
                         }
+                        else { sb.AppendLine("--"); }
+
+
+
+                        sb.Append("Supplier Description".PadRight(rightspace));
+                        sb.AppendLine(p.SupplierDescription);
+
+                        sb.Append("SKU".PadRight(rightspace));
+                        sb.AppendLine(p.SKU);
+
+                        sb.Append("Added By".PadRight(rightspace));
+                        sb.AppendLine(p.AddedBy.ToString().TrimEnd());
+
+
+                        sb.Append("Unit OF Measure".PadRight(rightspace));
+                        if (p.UID.HasValue)
+                        {
+                            var uid = ctx.UnitOfMeasure.Where(w => w.UID == p.UID.Value).Single();
+                            sb.AppendLine(uid.UOM);
+                        }
+                        decimal inventoryCount = ctx.Inventory.Where(l => l.PartID == id).Sum(c => c.Qnty);
+                        sb.Append("Current Stock".PadRight(rightspace));
+                        sb.AppendLine(inventoryCount.ToString());
+                        sb.AppendLine("");
+                        sb.Append("<---");
 
                     }
-                    else { sb.AppendLine("--"); }
-
-
-
-                    sb.Append("Supplier Description".PadRight(rightspace));
-                    sb.AppendLine(p.SupplierDescription);
-
-                    sb.Append("SKU".PadRight(rightspace));
-                    sb.AppendLine(p.SKU);
-
-                    sb.Append("Added By".PadRight(rightspace));
-                    sb.AppendLine(p.AddedBy.ToString().TrimEnd());
-
-
-                    sb.Append("Unit OF Measure".PadRight(rightspace));
-                    if (p.UID.HasValue)
-                    {
-                        var uid = ctx.UnitOfMeasure.Where(w => w.UID == p.UID.Value).Single();
-                        sb.AppendLine(uid.UOM);
-                    }
-                    decimal inventoryCount = ctx.Inventory.Where(l => l.PartID == id).Sum(c => c.Qnty);
-                    sb.Append("Current Stock".PadRight(rightspace));
-                    sb.AppendLine(inventoryCount.ToString());
-                    sb.AppendLine("");
-                    sb.Append("<---");
+                    catch { sb.AppendLine("No Valid Part Found"); }
 
                 }
-                catch { sb.AppendLine("No Valid Part Found"); }
-
             }
 
             return sb.ToString();
+            
         }
 
-        public static string findorder(int orderNum)
+        public static string showorder(int orderNum)
         {
             StringBuilder sb = new StringBuilder();
             using (var ctx = new MyContext())
@@ -160,6 +163,7 @@ namespace Mosiac.Commands
                     var lines = ctx.PurchaseLineItem.Include(v=> v.PurchaseOrder).Where(c => c.Description.Contains(search));
                     foreach (PurchaseLineItem l in lines)
                     {
+                       
                         string desc;
                         if (l.Description.ToString().TrimEnd().Length > 70)
                         { desc = StringTool.Truncate(l.Description.ToString().TrimEnd(), 70) + "..."; }
@@ -678,20 +682,48 @@ namespace Mosiac.Commands
             StringBuilder sb = new StringBuilder();
             sb.Append("-----------Commands---------------");
             sb.AppendLine("");
-            sb.AppendLine("findpart   <search string>");
-            sb.AppendLine("showpart   <part number>");
-            sb.AppendLine("stocklevel <part number>");
-            sb.AppendLine("pushpart   <part number, qnty>");
-            sb.AppendLine("pullpart   <part number, qnty>, [optional-jobid]");
-            sb.AppendLine("setlevel   <part number, qnty>");
-            sb.AppendLine("showtrans  <part number>");
-            sb.AppendLine("findorder  <order number>");
-            sb.AppendLine("findline   <search String>");
-            sb.AppendLine("findstocktag < tag number>");
+            sb.AppendLine("findpart      <search string>");
+            sb.AppendLine("showpart      <part number>");
+            sb.AppendLine("stocklevel    <part number>");
+            sb.AppendLine("pushpart      <part number, qnty>");
+            sb.AppendLine("pullpart      <part number, qnty>, [optional-jobid]");
+            sb.AppendLine("setlevel      <part number, qnty>");
+            sb.AppendLine("showtrans     <part number>");
+            sb.AppendLine("showorder     <order number>");
+            sb.AppendLine("findline      <search String>");
+            sb.AppendLine("findstocktag  <tag number>");
             sb.AppendLine("showinventory [optional-search string]");
             sb.AppendLine("findjob       [optional-search string]");
             sb.AppendLine("quit");
             return sb.ToString();
+        }
+
+        private static void DisplayAppInformation()
+        {
+            string vers = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+            Console.WriteLine(Mosiac.Commands.DefaultCommands.Filler(120));
+            Console.WriteLine("Mosiac-Inventory".PadLeft(60));
+            Console.WriteLine(String.Format("version {0,-24}".PadLeft(58), vers));
+            Console.WriteLine(String.Format("Date    {0,-24}".PadLeft(58), DateTime.Today.ToShortDateString()));
+            Console.WriteLine(Mosiac.Commands.DefaultCommands.Filler(120));
+            Console.WriteLine(" ");
+            Console.WriteLine(" ");
+
+        }
+
+        public static void clear()
+        {
+            try
+            {
+                Console.Clear();
+                DisplayAppInformation();
+            }
+            catch (Exception)
+            {
+
+             
+            }
+          
         }
 
 
