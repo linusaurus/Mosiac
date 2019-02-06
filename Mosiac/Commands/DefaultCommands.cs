@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using PurchaseModel;
 using System.Reflection;
+using System.Data.SqlClient;
 
 namespace Mosiac.Commands
 {
@@ -16,8 +17,7 @@ namespace Mosiac.Commands
         {
             int rightspace = 25;
             StringBuilder sb = new StringBuilder();
-           if (flag == "-")
-            {
+         
 
                 using (var ctx = new MyContext())
                 {
@@ -89,9 +89,10 @@ namespace Mosiac.Commands
                     catch { sb.AppendLine("No Valid Part Found"); }
 
                 }
-            }
+            
 
             return sb.ToString();
+            
             
         }
 
@@ -113,19 +114,21 @@ namespace Mosiac.Commands
 
                    sb.AppendLine(String.Format("|{0,-8}|{1,-10}|{2,-12}|{3,-30}|{4,-18}|{5,-37}|",
                         po.OrderNum,po.OrderDate.Value.ToShortDateString(),po.OrderTotal.Value.ToString("C2"),po.Supplier.SupplierName,po.Employee.firstname +" " + po.Employee.lastname,StringTool.Truncate(po.Job.jobName.ToString().TrimEnd(),37)));
-
-                    sb.AppendLine(FillDown(3));
-                    sb.AppendLine(String.Format("|{0,-8}|{1,-6}|{2,-8}|{3,-75}|{4,8}|{5,8}", "LineID", "PartID","Qnty", "Description", "Cost","Extend"));
+                    sb.AppendLine(Filler(120));//-------------------
+                    sb.AppendLine(FillDown(2));
+                    sb.AppendLine(Filler(120));//-------------------
+                    sb.AppendLine(String.Format("|{0,-8}|{1,-6}|{2,-8}|{3,-68}|{4,8}|{5,12}", "LineID", "PartID","Qnty", "Description", "Cost","Extend"));
+                    sb.AppendLine(Filler(120));//---------------
                     string desc;
                     foreach (var pline in po.PurchaseLineItems)
                     {
-                        if(pline.Description.TrimEnd().Length > 73)
-                        {desc = StringTool.Truncate(pline.Description.ToString().TrimEnd(), 70) + "...";}
+                        if(pline.Description.TrimEnd().Length > 66)
+                        {desc = StringTool.Truncate(pline.Description.ToString().TrimEnd(), 62) + "...";}
                         else
                         {desc = pline.Description.ToString().TrimEnd(); }
                                 
                         string cost=  pline.UnitCost.Value.ToString();
-                        sb.AppendLine(String.Format("|{0,-8}|{1,-6}|{2,-8}|{3,-75}|{4,8}|{5,8}|",
+                        sb.AppendLine(String.Format("|{0,-8}|{1,-6}|{2,-8}|{3,-68}|{4,8}|{5,17}|",
                             pline.LineID,pline.PartID,String.Format("{0:0.00}",pline.Qnty),desc,pline.UoPPrice.Value.ToString("C2"),pline.Extended.Value.ToString("C2")));
                     }
 
@@ -136,7 +139,15 @@ namespace Mosiac.Commands
                     { revd = "YES"; }
                     else{ revd = "NO"; }
 
-                    sb.AppendLine(String.Format("Received-{0}",revd));
+                    sb.Append(String.Format("Received-{0}  ",revd));
+                    if (po.RecievedDate.HasValue)
+                    {
+                        sb.AppendLine(String.Format("Received Date = {0} ", po.RecievedDate.Value.ToShortDateString()));
+                    }
+                    else
+                    {
+                        sb.AppendLine(String.Format("Received Date = {0} ", "NA"));
+                    }
 
                 }
                 catch (Exception ex)
@@ -148,6 +159,114 @@ namespace Mosiac.Commands
 
             }
             return sb.ToString() ;
+        }
+
+        public static string showjoborders(int jobNum, String supplier = "s")
+        {
+            StringBuilder sb = new StringBuilder();
+            decimal total = Decimal.Zero;
+            using (var ctx = new MyContext())
+            {
+                sb.AppendLine(Filler(120));
+                sb.AppendLine(String.Format("|{0,-8}|{1,-10}|{2,-12}|{3,-30}|{4,-18}|{5,-37}|",
+                       "OrderID", "Date", "Total", "Supplier", "Employee", "Job"));
+                sb.AppendLine(Filler(120));
+                decimal jobTotal = 0.0m;
+                
+                try
+                {
+                    // If no supplier is given
+                    if (supplier == "s")
+                    {
+                       var pos = ctx.PurchaseOrder.Include(s => s.Supplier)
+                            .Include(e => e.Employee).Include(j => j.Job)
+                                                    .Where(j => j.Job_id == jobNum).ToList();
+                   
+
+                    foreach(PurchaseOrder po in pos)
+                    {
+                        sb.AppendLine(String.Format("|{0,-8}|{1,-10}|{2,-12}|{3,-30}|{4,-18}|{5,-37}|",
+                        po.OrderNum, po.OrderDate.Value.ToShortDateString(), po.OrderTotal.Value.ToString("C2"), po.Supplier.SupplierName, po.Employee.firstname + " " + po.Employee.lastname, StringTool.Truncate(po.Job.jobName.ToString().TrimEnd(), 37)));
+                        jobTotal += po.OrderTotal.Value;
+                            total += po.OrderTotal.Value;
+                    }
+                    }
+
+                    // If no supplier is given
+                    if (supplier != "s")
+                    {
+                        var pos = ctx.PurchaseOrder.Include(s => s.Supplier)
+                             .Include(e => e.Employee).Include(j => j.Job)
+                                                     .Where(j => j.Job_id == jobNum).Where(k=> k.Supplier.SupplierName.Contains(supplier)).ToList();
+
+                        foreach (PurchaseOrder po in pos)
+                        {
+                            sb.AppendLine(String.Format("|{0,-8}|{1,-10}|{2,-12}|{3,-30}|{4,-18}|{5,-37}|",
+                            po.OrderNum, po.OrderDate.Value.ToShortDateString(), po.OrderTotal.Value.ToString("C2"), po.Supplier.SupplierName, po.Employee.firstname + " " + po.Employee.lastname, StringTool.Truncate(po.Job.jobName.ToString().TrimEnd(), 37)));
+                            jobTotal += po.OrderTotal.Value;
+                            total += po.OrderTotal.Value;
+                        }
+                    }
+
+                    sb.AppendLine("");
+                    sb.AppendLine(Filler(120));
+                    sb.AppendLine(String.Format("Job Total = {0}",jobTotal.ToString("C")));
+                    sb.AppendLine(Filler(120));
+
+
+                }
+                catch (Exception ex)
+                {
+                    sb.AppendLine(ex.InnerException.ToString());
+
+                }
+
+
+            }
+            return sb.ToString();
+        }
+
+        public static string showsupplierorders(String supplier)
+        {
+            decimal total = decimal.Zero;
+            StringBuilder sb = new StringBuilder();
+            using (var ctx = new MyContext())
+            {
+                sb.AppendLine(Filler(120));
+                sb.AppendLine(String.Format("|{0,-8}|{1,-10}|{2,-12}|{3,-30}|{4,-18}|{5,-37}|",
+                       "OrderID", "Date", "Total", "Supplier", "Employee", "Job"));
+                sb.AppendLine(Filler(120));
+                
+                try
+                {
+                   
+                        var pos = ctx.PurchaseOrder.Include(s => s.Supplier)
+                             .Include(e => e.Employee).Include(j => j.Job).Where(k => k.Supplier.SupplierName.Contains(supplier)).ToList();
+
+                        foreach (PurchaseOrder po in pos)
+                        {
+                        string  jname = po.Job_id.HasValue ? po.Job.jobName : "Unknown";
+                            sb.AppendLine(String.Format("|{0,-8}|{1,-10}|{2,-12}|{3,-30}|{4,-18}|{5,-37}|",
+                            po.OrderNum, po.OrderDate.Value.ToShortDateString(), po.OrderTotal.Value.ToString("C2"), 
+                            po.Supplier.SupplierName, po.Employee.firstname + " " + po.Employee.lastname, 
+                            StringTool.Truncate(jname, 37)));
+                             total += po.OrderTotal.Value;
+                        }               
+
+                }
+                catch (Exception ex)
+                {
+                    sb.AppendLine(ex.InnerException.ToString());
+
+                }
+
+
+            }
+            sb.AppendLine("");
+            sb.AppendLine(Filler(120));
+            sb.AppendLine(String.Format("Total Purchases = {0}",total.ToString("C")));
+            sb.AppendLine(Filler(120));
+            return sb.ToString();
         }
 
         public static string findline(string search)
@@ -200,16 +319,19 @@ namespace Mosiac.Commands
                     var partTransactions = ctx.Inventory.Where(l => l.PartID == partID).ToList();
                     if (partTransactions.Count > 0)
                     {
-                        sb.AppendLine(Filler(138));// --
-                        sb.AppendLine(String.Format("|{0,-10}|{1,-8}|{2,-16}|{3,-82}|{4,-9}|{5,8}|", "Stock_ID", "Part_ID", "Date","Description","TransType","Qnty")); //header--
-                        sb.AppendLine(Filler(138));
+                        sb.AppendLine(Filler(120));// --
+                        sb.AppendLine(String.Format("|{0,-10}|{1,-8}|{2,-12}|{3,-66}|{4,-10}|{5,9}|", "Stock_ID", "Part_ID", "Date","Description","TransType","Qnty")); //header--
+                        sb.AppendLine(Filler(120));
+                        
                         foreach (Inventory i in partTransactions)
                         {
-                            sb.AppendLine(String.Format("|{0,-10}|{1,-8}|{2,-16}|{3,-82}|{4,-9}|{5,8}|", 
-                                i.StockTransactionID, i.PartID,i.DateStamp.Value.ToShortDateString(),StringTool.Truncate( i.Description,82), i.TransActionType, i.Qnty));
+
+                            string desc = StringTool.Truncate(i.Description.ToString().TrimEnd(), 65);
+                            sb.AppendLine(String.Format("|{0,-10}|{1,-8}|{2,-12}|{3,-66}|{4,-10}|{5,9}|", 
+                                i.StockTransactionID, i.PartID,i.DateStamp.Value.ToShortDateString(),StringTool.Truncate( i.Description,62), i.TransActionType, i.Qnty));
                         }
                         decimal inventoryCount = ctx.Inventory.Where(l => l.PartID == partID).Sum(c => c.Qnty);
-                        sb.AppendLine(Filler(138)); //--
+                        sb.AppendLine(Filler(120)); //--
                         sb.AppendLine(" ");
                         sb.Append("Current Stock".PadRight(28));
                         sb.AppendLine(inventoryCount.ToString());
@@ -233,6 +355,7 @@ namespace Mosiac.Commands
 
             return sb.ToString();
         }
+
         public static string setlevel(int partID, decimal amountdesired)
         {
 
@@ -390,6 +513,48 @@ namespace Mosiac.Commands
             return sb.ToString();
         }
 
+       
+
+        public static string showrecent()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine(Filler(120));
+            sb.AppendLine(String.Format("|{0,-10}|{1,-8}|{2,-16}|{3,-64}|{4,-9}|{5,8}|", "Stock_ID", "Part_ID", "Date", "Description", "TransType", "Qnty")); //header--
+            sb.AppendLine(Filler(120));
+            using (var ctx = new MyContext())
+            {
+
+                try
+                {
+                    //Retrieve list of latest transacions
+                    var p = ctx.Inventory.Where(i=> i.DateStamp > DateTime.Today.AddDays(-7)).ToList().OrderByDescending(d=> d.DateStamp);
+                    int lineNumber = 0;
+                    foreach (Inventory inv in p)
+                    {
+
+                        string transType;
+                        lineNumber += 1;
+                        string pid;
+                        if (inv.PartID.HasValue) { pid = inv.PartID.Value.ToString(); } else { pid = "NA"; }
+                        string desc = StringTool.Truncate(inv.Description.TrimEnd(), 60);
+                        if (inv.Description.Trim().Length > 60) { desc += "..."; }
+                       
+                        
+                        sb.AppendLine(String.Format("|{0,-10}|{1,-8}|{2,-16}|{3,-64}|{4,-9}|{5,8}|",inv.StockTransactionID.ToString(),
+                            pid, inv.DateStamp.Value.ToShortDateString(), desc,inv.TransActionType, inv.Qnty.ToString())); 
+                    }
+                   
+                 
+
+                }
+                catch { sb.AppendLine("No Transaction found"); }
+
+            }
+
+            return sb.ToString();
+
+        }
+       
         public static string pullpart(int id, decimal amount, int jobnum = 0)
         {
 
@@ -452,7 +617,7 @@ namespace Mosiac.Commands
 
             StringBuilder sb = new StringBuilder();
             
-            for (int i = 0; i < charactercount; i++)
+            for (int i = 0; i < charactercount -1; i++)
             {
                 sb.AppendLine("|");
             }
@@ -468,9 +633,14 @@ namespace Mosiac.Commands
             {
                 try
                 {
-                    Inventory inv = ctx.Inventory.Where(c => c.LineID == id).FirstOrDefault();
+                    Inventory inv = ctx.Inventory.Include(p => p.OrderReciept).ThenInclude(o => o.PurchaseOrder).Where(c => c.LineID == id).FirstOrDefault();
 
-                    Inventory newInventory = new Inventory();
+                    Inventory inventoryItem = ctx.Inventory.Include(o => o.OrderReciept).Where(c => c.StockTransactionID == id).FirstOrDefault();
+                    if(inventoryItem != null)
+                    {
+                        sb.AppendLine("Found it!");
+
+                    }
 
                     //sb.AppendLine(" ");
                     //sb.AppendLine(String.Format("|{0,-10}|{1,-10}|{2,-9}|{3,-80}|{4,-11}|", "StockTag", "PartID", "Qnty", "Description", "Recvd Date"));
@@ -488,6 +658,87 @@ namespace Mosiac.Commands
             return sb.ToString();
         }
 
+        public static void partify()
+        {
+            StringBuilder sb = new StringBuilder();
+            Program.RunPartifyMenu();
+            
+
+        }
+
+        public static string showdeadparts(string search)
+        {
+
+            StringBuilder sb = new StringBuilder();
+            using (var ctx = new MyContext())
+            {
+                sb.AppendLine(Filler(120));
+                sb.AppendLine(String.Format("|{0,-8}|{1,-10}|{2,-100}|",
+                       "Part#", "DateAdded","Description"));
+                sb.AppendLine(Filler(120));
+
+
+                try
+                {
+
+                    var deadparts = ctx.DeadParts.Where(p=> p.ItemDescription.Contains(search)).ToList();
+                    
+                    if (deadparts.Count > 0)
+                    {
+                        foreach(DeadParts p in deadparts)
+                        {
+                            string trimmedDescription = StringTool.Truncate(p.ItemDescription.ToString().TrimEnd(), 95);
+                            string added = p.DateAdded.HasValue ? p.DateAdded.Value.ToShortDateString() :"Na";
+                            sb.AppendLine(String.Format("|{0,-8}|{1,-10}|{2,-100}|",p.PartID,added, p.ItemDescription));
+
+                        }
+                        
+                      
+
+                    }
+                }
+                catch { sb.AppendLine("No dead parts found"); }
+
+            }
+
+            return sb.ToString();
+
+        }
+
+        public static string deletepart(int id)
+        {
+
+            StringBuilder sb = new StringBuilder();
+            using (var ctx = new MyContext())
+            {
+                sb.AppendLine(Filler(120));
+                sb.AppendLine(String.Format("|{0,-8}|{1,-10}|{2,-100}|",
+                       "Part#", "DateAdded", "Description"));
+                sb.AppendLine(Filler(120));
+
+
+                try
+                {
+
+                    var part = ctx.Part.Where(p => p.PartID == id).First();
+                    Console.Write(String.Format("Delete Part {0}  y/n : ", part.ItemDescription));
+                    string answer = Console.Read().ToString();
+                    if(answer == "121")
+                    {
+                        ctx.Remove(part);
+                        ctx.SaveChanges();
+                        sb.Append(String.Format("Part {0} deleted", part.PartID));
+                    }
+                    
+                }
+                catch { sb.AppendLine("Part Delete Failed"); }
+
+            }
+
+            return sb.ToString();
+
+        }
+
         public static string findstocktag(int id)
         {
 
@@ -496,31 +747,100 @@ namespace Mosiac.Commands
             {
                 try
                 {
-                    var inventory = ctx.Inventory.Where(c => c.LineID == id).ToList();
-                  
-                    //if (p.UnitOfMeasure.HasValue)
-                    //{
-                    //    UnitOfMeasure uom = ctx.UnitOfMeasure.Where(u => u.UID == p.UnitOfMeasure.Value).Single();
-                    //}
+                    
 
-
-                    sb.AppendLine("||");
-                    sb.AppendLine(" ");
-                    sb.AppendLine(String.Format("|{0,-10}|{1,-10}|{2,-9}|{3,-80}|{4,-11}|","StockTag","PartID","Qnty", "Description", "Recvd Date"));
-                    sb.AppendLine("|----------------------------------------------------------------------------------------------------------------------------|");
-                    foreach (Inventory i in inventory)
+                    Inventory inventoryItem = ctx.Inventory.Include( o => o.OrderReciept).
+                        ThenInclude(p => p.PurchaseOrder).ThenInclude(e=> e.Employee).
+                        Where(c => c.StockTransactionID == id).FirstOrDefault();
+                    if (inventoryItem != null)
                     {
-                        sb.AppendLine(String.Format("|{0,-10}|{1,-10}|{2,-9}|{3,-80}|{4,-11:d}|", i.LineID, i.PartID.ToString() ?? "-",i.Qnty,StringTool.Truncate( i.Description.ToString().TrimEnd(),80), i.DateStamp));
+                        string trimmedDescription = StringTool.Truncate(inventoryItem.Description.ToString().TrimEnd(),100);
+                        sb.AppendLine("");
+                        sb.AppendLine(String.Format("| Found       | {0,-105}|", trimmedDescription));
+                        sb.AppendLine(String.Format("| Quantity    | {0,-105}|", inventoryItem.Qnty.ToString()));
+                        sb.AppendLine(String.Format("| Received    | {0,-105}|", inventoryItem.DateStamp.Value.ToShortDateString()));                  
+                        sb.AppendLine(String.Format("| Order Num   | {0,-105}|", inventoryItem.OrderReciept.PurchaseOrder.OrderNum.ToString()));
+                        sb.AppendLine(String.Format("| Order-Date  | {0,-105}|", inventoryItem.OrderReciept.PurchaseOrder.OrderDate.Value.ToShortDateString()));
+                        sb.AppendLine(String.Format("| Purchaser   | {0,-105}|", inventoryItem.OrderReciept.PurchaseOrder.Employee.lastname));
+                        var job = ctx.Job.Where(j => j.job_id == inventoryItem.JobID.Value).First();
+                        sb.AppendLine(String.Format("| Jobname     | {0,-105}|", job.jobName.ToString()));
+
+                    }
+                }
+                catch { sb.AppendLine("No Valid Stock Tag Found"); }
+                
+            }
+            
+            return sb.ToString();
+           
+        }
+
+        public static string supplierbuys(int id)
+        {
+            StringBuilder sb = new StringBuilder();
+            using (var ctx = new MyContext())
+            {
+                sb.AppendLine(Filler(120));
+                sb.AppendLine(String.Format("|{0,-10}|{1,-10}|{2,-12}|{3,-10}|{4,-74}|", "LineID", "Order#", "Date", "Qnty", "Discription"));
+                sb.AppendLine(Filler(120));
+                try
+                {
+                    string sql = String.Format("Select * FROM PurchaseLineItem where PurchaseOrderID IN (Select OrderNum From PurchaseOrder  Where SupplierID ={0})", id.ToString()); 
+
+                    var lines = ctx.PurchaseLineItem.FromSql(sql).ToList();
+                    int lineCount = 0;
+
+                    foreach (PurchaseLineItem l in lines)
+                    {
+
+                        string desc;
+                        if (l.Description.ToString().TrimEnd().Length > 70)
+                        { desc = StringTool.Truncate(l.Description.ToString().TrimEnd(), 70) + "..."; }
+                        else
+                        { desc = l.Description.ToString().TrimEnd(); }
+
+                        string qnty = String.Format("{0:0.00}", l.Qnty);
+                        //string date = l.PurchaseOrder.OrderDate.Value.ToShortDateString();
+                        sb.AppendLine(String.Format("|{0,-10}|{1,-10}|{2,-12}|{3,-10}|", l.LineID, l.PurchaseOrderID, l.Qnty.HasValue ?  l.Qnty : 0, desc));
+                        lineCount++;
                     }
 
+                    sb.Append(String.Format("{0} - Records Found", lineCount.ToString()));
                 }
-                catch { sb.AppendLine("No Valid Part Found"); }
+                catch (Exception ex)
+                {
+                    sb.AppendLine(ex.InnerException.ToString());
+
+                }
+
 
             }
 
             return sb.ToString();
         }
 
+        public static string unreceive(int id)
+        {
+
+            StringBuilder sb = new StringBuilder();
+            using (var ctx = new MyContext())
+            {
+                try
+                {
+                    SqlParameter param1 = new SqlParameter("@ordnum", id);
+                    param1.SqlDbType = System.Data.SqlDbType.Int;
+                    int result = ctx.Database.ExecuteSqlCommand("unrecieve @ordnum", param1);
+                    if(result > 0)
+                    {
+                        sb.Append(String.Format("Successfully Unreceived Order {0}", id.ToString()));
+                    }
+                }
+                catch { sb.AppendLine("Error Unreceiving order " + id.ToString()); }
+
+            }
+
+            return sb.ToString();
+        }
 
         public static string stocklevel(int id)
         {
@@ -586,6 +906,56 @@ namespace Mosiac.Commands
             }
 
             return sb.ToString();
+        }
+
+        public static string findsupplier(string src = "0")
+        {
+            StringBuilder sb = new StringBuilder();
+            using (var ctx = new MyContext())
+            {
+                try
+                {
+                    if (src != "0")
+                    {
+                        var found = ctx.Supplier.Where(c => c.SupplierName.Contains(src)).ToList();
+                        if (found.Count > 0)
+                        {
+                            sb.AppendLine(" ");
+                            sb.AppendLine(String.Format("|{0,-7}|{1,-55}|", "Supplier_ID", "SupplierName"));
+                            sb.AppendLine("|-----------------------------------------------------------------------|");
+
+                            foreach (Supplier p in found)
+                            {
+                                sb.AppendLine(String.Format("|{0,-7}|{1,-55}|", p.SupplierID, p.SupplierName));
+
+                            }
+                        }
+                    }
+                    else
+                    {
+                        var found = ctx.Supplier.ToList();
+                        if (found.Count > 0)
+                        {
+                            sb.AppendLine(" ");
+                            sb.AppendLine(String.Format("|{0,-7}|{1,-55}|", "Job_ID", "JobNum", "Job Name"));
+                            sb.AppendLine("|-----------------------------------------------------------------------|");
+
+                            foreach (Supplier p in found)
+                            {
+                                sb.AppendLine(String.Format("|{0,-7}|{1,-55}|", p.SupplierID, p.SupplierName));
+
+                            }
+                        }
+                    }
+
+                }
+                catch { sb.AppendLine("No Valid Job Found"); }
+
+            }
+
+            return sb.ToString();
+
+
         }
 
         public static string findjob(string src = "0")
@@ -682,18 +1052,26 @@ namespace Mosiac.Commands
             StringBuilder sb = new StringBuilder();
             sb.Append("-----------Commands---------------");
             sb.AppendLine("");
-            sb.AppendLine("findpart      <search string>");
-            sb.AppendLine("showpart      <part number>");
-            sb.AppendLine("stocklevel    <part number>");
-            sb.AppendLine("pushpart      <part number, qnty>");
-            sb.AppendLine("pullpart      <part number, qnty>, [optional-jobid]");
-            sb.AppendLine("setlevel      <part number, qnty>");
-            sb.AppendLine("showtrans     <part number>");
-            sb.AppendLine("showorder     <order number>");
-            sb.AppendLine("findline      <search String>");
-            sb.AppendLine("findstocktag  <tag number>");
-            sb.AppendLine("showinventory [optional-search string]");
-            sb.AppendLine("findjob       [optional-search string]");
+            sb.AppendLine("findpart           <search string>");
+            sb.AppendLine("showpart           <part number>");
+            sb.AppendLine("stocklevel         <part number>");
+            sb.AppendLine("pushpart           <part number, qnty>");
+            sb.AppendLine("pullpart           <part number, qnty>, [optional-jobid]");
+            sb.AppendLine("showdeadparts      <search string>");
+            sb.AppendLine("deletepart         <part number> [y/N]");
+            sb.AppendLine("setlevel           <part number, qnty>");
+            sb.AppendLine("showtrans          <part number>");
+            sb.AppendLine("showorder          <order number>");
+            sb.AppendLine("showjoborders      <job_id , [optional-supplier name]");
+            sb.AppendLine("showsupplierorders <supplier name");
+            sb.AppendLine("showrecent         <displays one week of transactions");
+            sb.AppendLine("findline           <search String>");
+            sb.AppendLine("findstocktag       <tag number>");
+            sb.AppendLine("showinventory      [optional-search string]");
+            sb.AppendLine("findjob            [optional-search string]");
+            sb.AppendLine("supplierbuys         <SupplierID> ");
+            sb.AppendLine("findsupplier       [optional-search string]");
+            sb.AppendLine("unreceive          <OrderNum>");
             sb.AppendLine("quit");
             return sb.ToString();
         }
@@ -726,12 +1104,6 @@ namespace Mosiac.Commands
           
         }
 
-
-        //public static string FindPart(int id, string data)
-        //{
-        //    return string.Format(ConsoleFormatting.Indent(2) +
-        //        "I did something to the record Id {0} and saved the data '{1}'", id, data);
-        //}
 
 
         public static string DoSomethingElse(DateTime date)

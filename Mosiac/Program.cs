@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
 
+
 namespace Mosiac
 {
 
@@ -13,7 +14,7 @@ namespace Mosiac
         //This is working. and debugging is working!
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlServer(@"Server=Dataserver;DataBase=Badger;user id=sa; password=Kx09a32x");
+            optionsBuilder.UseSqlServer(@"Server=192.168.10.3;DataBase=Badger;user id=sa; password=Kx09a32x");
         }
 
         public DbSet<Part> Part { get; set; }
@@ -27,7 +28,9 @@ namespace Mosiac
         public DbSet<PurchaseOrder> PurchaseOrder { get; set; }
         public DbSet<PurchaseLineItem> PurchaseLineItem { get; set; }
         public DbSet<Employee> Employee { get; set; }
+        public DbSet<DeadParts> DeadParts { get; set; }
 
+        
         
     }
 
@@ -36,24 +39,29 @@ namespace Mosiac
     {
         const string _commandNamespace = "Mosiac.Commands";
         static Dictionary<string, Dictionary<string, IEnumerable<System.Reflection.ParameterInfo>>> _commandLibraries;
-        static string vers = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+        //static string vers = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+        static string vers = Assembly.GetExecutingAssembly().GetName().Version.Major.ToString() + "."
+                           + Assembly.GetExecutingAssembly().GetName().Version.Minor.ToString() + "."
+                           + Assembly.GetExecutingAssembly().GetName().Version.MinorRevision.ToString();
         static void DisplayAppInformation()
         {
             Console.WriteLine(Mosiac.Commands.DefaultCommands.Filler(120));                                                                          
             Console.WriteLine("Mosiac-Inventory".PadLeft(60));
-            Console.WriteLine(String.Format("version {0,-24}".PadLeft(58),vers));
-            Console.WriteLine(String.Format("Date    {0,-24}".PadLeft(58), DateTime.Today.ToShortDateString()));
+            Console.WriteLine(String.Format("version {0,-24}".PadLeft(59),vers));
+            Console.WriteLine(String.Format("Date    {0,-24}".PadLeft(59), DateTime.Today.ToShortDateString()));
             Console.WriteLine(Mosiac.Commands.DefaultCommands.Filler(120));
             Console.WriteLine(" ");
             Console.WriteLine(" ");
 
         }
-
+        public static Employee ActiveUser;
 
         static void Main(string[] args)
         {
             Console.Title = "Mosiac-Inventory";      //typeof(Program).Name;
+           
 
+            Login();
             DisplayAppInformation();
             MyContext ctx = new MyContext();
             var parts = ctx.Part.Where(p => p.ItemDescription.Contains("hinge")).ToList();
@@ -85,6 +93,114 @@ namespace Mosiac
             }
             Run();
 
+        }
+
+        public static bool Testlogin(string user, string pass)
+        {
+           bool result = false;
+            using (var ctx = new MyContext())
+            {
+                try
+                {
+                    Employee e = ctx.Employee.Where(c => c.Login == user).First();
+                    if (e.Password == pass)
+                    {
+                        result = true;
+                        ActiveUser = e;
+                    }
+
+                }
+                catch { }
+
+                return result;
+            }
+        }
+
+
+        static void Login()
+        {
+            bool Authenticated = false;
+            string Password = "";
+            while (Authenticated != true)
+            {
+                Console.WriteLine("Mosiac-Inventory System");
+                Console.Write("username : ");
+                string userName = Console.ReadLine();
+                Console.Write("password : ");
+                ConsoleKeyInfo key;
+
+                while (key.Key != ConsoleKey.Enter) 
+                {
+                    key = Console.ReadKey(true);
+
+                    // Backspace Should Not Work
+                    if (key.Key != ConsoleKey.Backspace)
+                    {
+                        Password += key.KeyChar;
+                        Console.Write("*");
+                    }
+                    else
+                    {
+                        Console.Write("\b");
+                    }
+                }
+                // Stops Receving Keys Once Enter is Pressed
+              
+                Password = Password.TrimEnd();
+
+                if (Testlogin(userName, Password))
+                {
+                    Console.WriteLine("");
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("login Successful!");
+                    Console.WriteLine(" ");
+                    Console.Write("User = ");
+                    Console.Write(ActiveUser.firstname.ToString() + " " + ActiveUser.lastname.ToString());
+                    Console.WriteLine(" ");
+                    Authenticated = true;
+                    Console.Title = String.Format("Mosiac-Inventory : User = {0} {1}", ActiveUser.firstname, ActiveUser.lastname);
+                }
+                else
+                {               
+                    Console.WriteLine("Password failed : {0}", userName);
+                    //Console.ReadLine();
+                }
+
+            }
+        }
+
+        public static void  RunPartifyMenu()
+        {
+            int userInput = 0;
+            do
+            {
+              userInput = DisplayStockTagMenu();
+
+                
+            } while (userInput != 5);
+
+            switch (userInput)
+            {
+                case 1:
+                    {
+
+                        Console.WriteLine("Case 1");
+                    }
+
+                    break;
+            }
+
+        }
+
+        static public int DisplayStockTagMenu()
+        {
+            Console.WriteLine("Menu");
+            Console.WriteLine();
+            Console.WriteLine("1. Search");
+            Console.WriteLine("2. Partify");
+            Console.WriteLine("4. Exit");
+            var result = Console.ReadLine();
+            return Convert.ToInt32(result);
         }
 
         static void Run()
