@@ -4,6 +4,7 @@ using PurchaseModel;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
+using System.Text;
 
 
 namespace Mosiac
@@ -45,11 +46,22 @@ namespace Mosiac
                            + Assembly.GetExecutingAssembly().GetName().Version.MinorRevision.ToString();
         static void DisplayAppInformation()
         {
-            Console.WriteLine(Mosiac.Commands.DefaultCommands.Filler(120));                                                                          
-            Console.WriteLine("Mosiac-Inventory".PadLeft(60));
-            Console.WriteLine(String.Format("version {0,-24}".PadLeft(59),vers));
-            Console.WriteLine(String.Format("Date    {0,-24}".PadLeft(59), DateTime.Today.ToShortDateString()));
-            Console.WriteLine(Mosiac.Commands.DefaultCommands.Filler(120));
+
+            Console.WriteLine(@" __  __           _            ");
+            Console.WriteLine(@"|  \/  |         (_)           ");
+            Console.WriteLine(@"| \  / | ___  ___ _  __ _  ___ ");
+            Console.WriteLine(@"| |\/| |/ _ \/ __| |/ _` |/ __|");
+            Console.WriteLine(@"| |  | | (_) \__ \ | (_| | (__");
+            Console.WriteLine(@"|_|  |_|\___/|___/_|\__,_|\___|");
+
+
+
+            Console.WriteLine(Mosiac.Commands.DefaultCommands.Filler(80));                                                                          
+            Console.WriteLine("Mosiac-Inventory".PadLeft(6));
+            Console.WriteLine(String.Format("version {0,-24}".PadLeft(6),vers));
+            Console.Write(String.Format("Date    {0,-24}".PadLeft(6), DateTime.Today.ToShortDateString()));
+            Console.WriteLine(String.Format("Time     {0}".PadLeft(6), DateTime.Now.ToLongTimeString()));
+            Console.WriteLine(Mosiac.Commands.DefaultCommands.Filler(80));
             Console.WriteLine(" ");
             Console.WriteLine(" ");
 

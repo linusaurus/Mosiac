@@ -152,7 +152,7 @@ namespace Mosiac.Commands
                 }
                 catch (Exception ex)
                 {
-                    sb.AppendLine(ex.InnerException.ToString());
+                    sb.AppendLine("Order does not exist or has been deleted");
 
                 }
 
@@ -603,12 +603,12 @@ namespace Mosiac.Commands
         public static string Filler(int charactercount) {
 
             StringBuilder sb = new StringBuilder();
-            sb.Append("|");
+            sb.Append("#");
             for (int i = 0; i < charactercount; i++)
             {
-                sb.Append("-");
+                sb.Append("#");
             }
-            sb.Append("|");
+            sb.Append("#");
             return sb.ToString();
         }
 
@@ -836,6 +836,29 @@ namespace Mosiac.Commands
                     }
                 }
                 catch { sb.AppendLine("Error Unreceiving order " + id.ToString()); }
+
+            }
+
+            return sb.ToString();
+        }
+
+        public static string deleteorder(int id)
+        {
+
+            StringBuilder sb = new StringBuilder();
+            using (var ctx = new MyContext())
+            {
+                try
+                {
+                    SqlParameter param1 = new SqlParameter("@OrderNum", id);
+                    param1.SqlDbType = System.Data.SqlDbType.Int;
+                    int result = ctx.Database.ExecuteSqlCommand("DeletePO  @OrderNum", param1);
+                    if (result > 0)
+                    {
+                        sb.Append(String.Format("Successfully Deleted Order {0}", id.ToString()));
+                    }
+                }
+                catch { sb.AppendLine("Error deleting order " + id.ToString()); }
 
             }
 
@@ -1072,6 +1095,7 @@ namespace Mosiac.Commands
             sb.AppendLine("supplierbuys         <SupplierID> ");
             sb.AppendLine("findsupplier       [optional-search string]");
             sb.AppendLine("unreceive          <OrderNum>");
+            sb.AppendLine("deleteorder        <OrderNum>");
             sb.AppendLine("quit");
             return sb.ToString();
         }
