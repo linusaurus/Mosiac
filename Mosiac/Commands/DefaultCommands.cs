@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using PurchaseModel;
 using System.Reflection;
 using System.Data.SqlClient;
+using System.Collections.Generic;
 
 namespace Mosiac.Commands
 {
@@ -399,10 +400,6 @@ namespace Mosiac.Commands
                             sb.AppendLine("Push this amount-".PadRight(20) + push.ToString());
                             sb.AppendLine("+ --------------------------------------------------------------------- +");
                         }
-
-
-
-
                     }
                     else  //THERE IS NO TRANSACTIONS SO MAKE A FIRST ONE
                     {
@@ -438,7 +435,7 @@ namespace Mosiac.Commands
                     inventory.TransActionType = 4;
                     inventory.DateStamp = DateTime.Today;
                     inventory.Description = p.ItemDescription;
-                    inventory.UnitOfMeasure = p.UID;
+                    inventory.UnitOfMeasure = p.UID.Value;
 
                     ctx.Inventory.Add(inventory);
                     ctx.SaveChanges();
@@ -635,26 +632,30 @@ namespace Mosiac.Commands
                 {
                     Inventory inv = ctx.Inventory.Include(p => p.OrderReciept).ThenInclude(o => o.PurchaseOrder).Where(c => c.LineID == id).FirstOrDefault();
 
-                    Inventory inventoryItem = ctx.Inventory.Include(o => o.OrderReciept).Where(c => c.StockTransactionID == id).FirstOrDefault();
+                    Inventory inventoryItem = ctx.Inventory.Include(o => o.OrderReciept).Where(c => c.LineID == id).FirstOrDefault();
                     if(inventoryItem != null)
                     {
-                        sb.AppendLine("Found it!");
+                        //sb.AppendLine("Found it!");
+                        Inventory pushLine = new Inventory();
+                        pushLine.DateStamp = DateTime.Today;
+                        pushLine.Description = inventoryItem.Description;
+                        pushLine.JobID = inventoryItem.JobID;
+                        pushLine.LineID = inventoryItem.LineID;
+                        pushLine.Location = inventoryItem.Location;
+                        pushLine.Qnty = inventoryItem.Qnty * -1.0m ;
+                        pushLine.TransActionType = 3;
+                        pushLine.UnitOfMeasure = inventoryItem.UnitOfMeasure;
+                        ctx.Inventory.Add(pushLine);
+                        ctx.SaveChanges();
+                        sb.AppendLine(String.Format("Line {0} pulled from inventory",pushLine.LineID));
 
                     }
 
-                    //sb.AppendLine(" ");
-                    //sb.AppendLine(String.Format("|{0,-10}|{1,-10}|{2,-9}|{3,-80}|{4,-11}|", "StockTag", "PartID", "Qnty", "Description", "Recvd Date"));
-                    //sb.AppendLine(Filler(125));
-                    //foreach (Inventory i in inventory)
-                    //{
-                    //    sb.AppendLine(String.Format("|{0,-10}|{1,-10}|{2,-9}|{3,-80}|{4,-11:d}|", i.LineID, i.PartID.ToString() ?? "-", i.Qnty, StringTool.Truncate(i.Description.ToString().TrimEnd(), 80), i.DateStamp));
-                    //}
+               
 
                 }
-                catch { sb.AppendLine("No Valid Part Found"); }
-
+                catch { sb.AppendLine("No TagFound"); }
             }
-
             return sb.ToString();
         }
 
@@ -662,8 +663,6 @@ namespace Mosiac.Commands
         {
             StringBuilder sb = new StringBuilder();
             Program.RunPartifyMenu();
-            
-
         }
 
         public static string showdeadparts(string search)
@@ -739,6 +738,48 @@ namespace Mosiac.Commands
 
         }
 
+        public static string showstocktag(int id)
+        {
+
+            StringBuilder sb = new StringBuilder();
+            using (var ctx = new MyContext())
+            {
+                try
+                {
+
+
+                    List<Inventory> inventoryItems = ctx.Inventory.Include(o => o.OrderReciept).
+                        ThenInclude(p => p.PurchaseOrder).ThenInclude(e => e.Employee).
+                        Where(c => c.LineID == id).ToList();
+                    if (inventoryItems != null)
+                    {
+                        foreach (Inventory item in inventoryItems)
+                        {
+
+                        
+
+                        string trimmedDescription = StringTool.Truncate(item.Description.ToString().TrimEnd(), 100);
+                        sb.AppendLine("");
+                        sb.AppendLine(String.Format("| Found       | {0,-105}|", trimmedDescription));
+                        sb.AppendLine(String.Format("| Quantity    | {0,-105}|", item.Qnty.ToString()));
+                        sb.AppendLine(String.Format("| Received    | {0,-105}|", item.DateStamp.Value.ToShortDateString()));
+                        sb.AppendLine(String.Format("| Order Num   | {0,-105}|", item.OrderReciept.PurchaseOrder.OrderNum.ToString()));
+                        sb.AppendLine(String.Format("| Order-Date  | {0,-105}|", item.OrderReciept.PurchaseOrder.OrderDate.Value.ToShortDateString()));
+                        sb.AppendLine(String.Format("| Purchaser   | {0,-105}|", item.OrderReciept.PurchaseOrder.Employee.lastname));
+                        var job = ctx.Job.Where(j => j.job_id == item.JobID.Value).First();
+                        sb.AppendLine(String.Format("| Jobname     | {0,-105}|", job.jobName.ToString()));
+                        }
+
+                    }
+                }
+                catch { sb.AppendLine("No Valid Stock Tag Found"); }
+
+            }
+
+            return sb.ToString();
+
+        }
+
         public static string findstocktag(int id)
         {
 
@@ -751,7 +792,7 @@ namespace Mosiac.Commands
 
                     Inventory inventoryItem = ctx.Inventory.Include( o => o.OrderReciept).
                         ThenInclude(p => p.PurchaseOrder).ThenInclude(e=> e.Employee).
-                        Where(c => c.StockTransactionID == id).FirstOrDefault();
+                        Where(c => c.LineID == id).FirstOrDefault();
                     if (inventoryItem != null)
                     {
                         string trimmedDescription = StringTool.Truncate(inventoryItem.Description.ToString().TrimEnd(),100);
@@ -1080,6 +1121,7 @@ namespace Mosiac.Commands
             sb.AppendLine("stocklevel         <part number>");
             sb.AppendLine("pushpart           <part number, qnty>");
             sb.AppendLine("pullpart           <part number, qnty>, [optional-jobid]");
+            sb.AppendLine("pullstocktag       <stocktagID>");
             sb.AppendLine("showdeadparts      <search string>");
             sb.AppendLine("deletepart         <part number> [y/N]");
             sb.AppendLine("setlevel           <part number, qnty>");

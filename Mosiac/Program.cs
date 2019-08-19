@@ -51,7 +51,7 @@ namespace Mosiac
             Console.WriteLine(@"|  \/  |         (_)           ");
             Console.WriteLine(@"| \  / | ___  ___ _  __ _  ___ ");
             Console.WriteLine(@"| |\/| |/ _ \/ __| |/ _` |/ __|");
-            Console.WriteLine(@"| |  | | (_) \__ \ | (_| | (__");
+            Console.WriteLine(@"| |  | | (_) \__ \ | (_| | (__ ");
             Console.WriteLine(@"|_|  |_|\___/|___/_|\__,_|\___|");
 
 
