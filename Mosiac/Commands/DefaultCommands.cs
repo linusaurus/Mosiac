@@ -389,7 +389,7 @@ namespace Mosiac.Commands
                             sb.AppendLine("Pull this amount-".PadRight(20) + push.ToString());
                             sb.AppendLine("+ --------------------------------------------------------------------- +");
                         }
-                        else if (inventoryCount > amountdesired)
+                        else if (inventoryCount < amountdesired)
                         {
                             decimal push = (Math.Abs(inventoryCount - amountdesired));
                             sb.Append("Current Stock".PadRight(20));
@@ -432,7 +432,7 @@ namespace Mosiac.Commands
                     Inventory inventory = new Inventory();
                     inventory.PartID = p.PartID;
                     inventory.Qnty = amount;
-                    inventory.TransActionType = 4;
+                    inventory.TransActionType = tcode;
                     inventory.DateStamp = DateTime.Today;
                     inventory.Description = p.ItemDescription;
                     inventory.UnitOfMeasure = p.UID.Value;
