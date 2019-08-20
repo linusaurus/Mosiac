@@ -359,7 +359,7 @@ namespace Mosiac.Commands
 
         public static string setlevel(int partID, decimal amountdesired)
         {
-
+            
             StringBuilder sb = new StringBuilder();
             using (var ctx = new MyContext())
             {
@@ -385,7 +385,8 @@ namespace Mosiac.Commands
                             sb.AppendLine(inventoryCount.ToString());
                             sb.Append("Difference".PadRight(20));
                             sb.AppendLine(push.ToString());
-                            transaction(partID, push, 4);
+                            transaction(partID, push, Mosiac.Program.ActiveUser.employeeID, 4);
+
                             sb.AppendLine("Pull this amount-".PadRight(20) + push.ToString());
                             sb.AppendLine("+ --------------------------------------------------------------------- +");
                         }
@@ -396,14 +397,14 @@ namespace Mosiac.Commands
                             sb.AppendLine(inventoryCount.ToString());
                             sb.Append("Difference".PadRight(20));
                             sb.AppendLine(push.ToString());
-                            transaction(partID, push, 4);
+                            transaction(partID, push, Mosiac.Program.ActiveUser.employeeID,4);
                             sb.AppendLine("Push this amount-".PadRight(20) + push.ToString());
                             sb.AppendLine("+ --------------------------------------------------------------------- +");
                         }
                     }
                     else  //THERE IS NO TRANSACTIONS SO MAKE A FIRST ONE
                     {
-                        transaction(partID, amountdesired, 2);
+                        transaction(partID, amountdesired, Mosiac.Program.ActiveUser.employeeID, 2);
                         sb.AppendLine("----------------------------------------------------------");
                         sb.AppendLine("Current Level");
 
@@ -418,7 +419,7 @@ namespace Mosiac.Commands
             return sb.ToString();
         }
 
-        static string transaction(int id, decimal amount, int tcode = 0)
+        static string transaction(int id, decimal amount,int user, int tcode = 0)
         {
 
             StringBuilder sb = new StringBuilder();
@@ -436,7 +437,7 @@ namespace Mosiac.Commands
                     inventory.DateStamp = DateTime.Today;
                     inventory.Description = p.ItemDescription;
                     inventory.UnitOfMeasure = p.UID.Value;
-
+                    inventory.Emp_id = user;
                     ctx.Inventory.Add(inventory);
                     ctx.SaveChanges();
 
@@ -480,6 +481,7 @@ namespace Mosiac.Commands
                     inventory.DateStamp = DateTime.Today;
                     inventory.Description = p.ItemDescription;
                     inventory.UnitOfMeasure = p.UID;
+                    inventory.Emp_id = Mosiac.Program.ActiveUser.employeeID;
                     if (jobnum != 0)
                     {
                         inventory.JobID = jobnum;
@@ -569,6 +571,7 @@ namespace Mosiac.Commands
                     inventory.DateStamp = DateTime.Today;
                     inventory.Description = p.ItemDescription.Trim();
                     inventory.UnitOfMeasure = p.UID;
+                    inventory.Emp_id = Mosiac.Program.ActiveUser.employeeID;
                     if (jobnum != 0)
                     {
                         inventory.JobID = jobnum;
@@ -645,6 +648,7 @@ namespace Mosiac.Commands
                         pushLine.Qnty = inventoryItem.Qnty * -1.0m ;
                         pushLine.TransActionType = 3;
                         pushLine.UnitOfMeasure = inventoryItem.UnitOfMeasure;
+                        pushLine.Emp_id = Mosiac.Program.ActiveUser.employeeID;
                         ctx.Inventory.Add(pushLine);
                         ctx.SaveChanges();
                         sb.AppendLine(String.Format("Line {0} pulled from inventory",pushLine.LineID));
